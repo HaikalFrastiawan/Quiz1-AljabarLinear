@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SPL Solver: Gauss-Jordan vs Cramer</title>
+    <style>
+        /* CSS Sederhana untuk Tampilan */
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
+        h1, h2 { color: #333; }
+        .input-section { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .equation-input { margin-bottom: 15px; }
+        input[type="number"] { width: 50px; text-align: center; border: 1px solid #ccc; padding: 5px; border-radius: 3px; }
+        .method-choice { margin-bottom: 20px; font-weight: bold; }
+        button { padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        #results { margin-top: 30px; padding: 20px; background-color: #e9ecef; border-radius: 5px; }
+        .matrix-step { margin-top: 15px; padding: 10px; border: 1px solid #ccc; background-color: #fff; border-radius: 5px; }
+        .matrix-step p, .cramer-det { margin: 5px 0; font-weight: bold; color: #007bff; }
+        .matrix-table { border-collapse: collapse; width: 100%; }
+        .matrix-table td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        .final-solution { font-size: 1.2em; color: green; }
+    </style>
+</head>
+<body>
+
+    <h3> Nama: Haikal Frastiawan</h3>
+    <h3> NIM: 411242044</h3>
+    <h3> Jurusan: Teknik Informatika</h3>
+    <br> <hr>
+    <h1>Kalkulator SPL (Gauss-Jordan & Cramer)</h1>
+    <div class="input-section">
+        <p>Masukkan koefisien untuk sistem persamaan linier 3x3 (A, B, C) dan konstanta (D):</p>
+
+        <div class="equation-input">
+            <input type="number" id="a1" value="2">x + 
+            <input type="number" id="b1" value="1">y + 
+            <input type="number" id="c1" value="-1">z = 
+            <input type="number" id="d1" value="8">
+        </div>
+        <div class="equation-input">
+            <input type="number" id="a2" value="-3">x + 
+            <input type="number" id="b2" value="-1">y + 
+            <input type="number" id="c2" value="2">z = 
+            <input type="number" id="d2" value="-11">
+        </div>
+        <div class="equation-input">
+            <input type="number" id="a3" value="-2">x + 
+            <input type="number" id="b3" value="1">y + 
+            <input type="number" id="c3" value="2">z = 
+            <input type="number" id="d3" value="-3">
+        </div>
+
+        <div class="method-choice">
+            Pilih Metode:
+            <input type="radio" id="method-gauss" name="method" value="gauss" checked>
+            <label for="method-gauss">Gauss-Jordan (Penjabaran)</label>
+            <input type="radio" id="method-cramer" name="method" value="cramer">
+            <label for="method-cramer">Aturan Cramer (Determinan)</label>
+        </div>
+
+        <button onclick="mainSolver()">Hitung Solusi</button>
+    </div>
+
+    <div id="results">
+        <h2>Hasil Perhitungan:</h2>
+    </div>
+
+    <script>
+        // --- Fungsi Bantuan Umum ---
+
+        function getMatrixInput() {
+            // Ambil semua nilai dari form input
+            const M = [
+                [parseFloat(document.getElementById('a1').value), parseFloat(document.getElementById('b1').value), parseFloat(document.getElementById('c1').value), parseFloat(document.getElementById('d1').value)],
+                [parseFloat(document.getElementById('a2').value), parseFloat(document.getElementById('b2').value), parseFloat(document.getElementById('c2').value), parseFloat(document.getElementById('d2').value)],
+                [parseFloat(document.getElementById('a3').value), parseFloat(document.getElementById('b3').value), parseFloat(document.getElementById('c3').value), parseFloat(document.getElementById('d3').value)]
+            ];
+            // Pisahkan Matriks Koefisien (A) dan Vektor Konstanta (B)
+            const A = M.map(row => row.slice(0, 3));
+            const B = M.map(row => row[3]);
+            return { M, A, B };
+        }
+
+        function createMatrixTable(M) {
+            let html = '<table class="matrix-table">';
+            for (let i = 0; i < M.length; i++) {
+                html += '<tr>';
+                for (let j = 0; j < M[i].length; j++) {
+                    html += `<td>${M[i][j].toFixed(0)}</td>`;
+                }
+                html += '</tr>';
+            }
+            html += '</table>';
+            return html;
+        }
+
+        // --- 1. Fungsi Eliminasi Gauss-Jordan (Dengan Penjabaran) ---
+
+        function solveGaussJordan(M_input, n, resultContainer) {
+            let M = JSON.parse(JSON.stringify(M_input)); // Salin Matriks
+            let resultHTML = "<h2><span style='color:#007bff;'>Metode Gauss-Jordan:</span> Penjabaran Langkah</h2>";
+            
+            // Tampilkan Matriks Awal
+            resultHTML += '<div class="matrix-step"><p>Matriks Diperbesar Awal:</p>' + createMatrixTable(M) + '</div>';
+
+            try {
+                for (let i = 0; i < n; i++) {
+                    // Pivoting
+                    let max_row = i;
+                    for (let k = i + 1; k < n; k++) {
+                        if (Math.abs(M[k][i]) > Math.abs(M[max_row][i])) {
+                            max_row = k;
+                        }
+                    }
+                    if (max_row !== i) {
+                        [M[i], M[max_row]] = [M[max_row], M[i]];
+                        resultHTML += `<div class="matrix-step"><p style='color:orange;'>Langkah: Tukar R${i+1} dan R${max_row+1}</p>` + createMatrixTable(M) + '</div>';
+                    }
+
+                    let pivot = M[i][i];
+                    if (Math.abs(pivot) < 1e-9) { 
+                        resultHTML += "<p style='color:red;'>Matriks Singular. Solusi unik tidak ada.</p>";
+                        resultContainer.innerHTML = resultHTML;
+                        return;
+                    }
+
+                    // Normalisasi
+                    let pivot_value = M[i][i];
+                    for (let j = i; j < n + 1; j++) {
+                        M[i][j] /= pivot_value;
+                    }
+                    resultHTML += `<div class="matrix-step"><p>Langkah: Normalisasi R${i+1} = R${i+1} / ${pivot_value.toFixed(0)}</p>` + createMatrixTable(M) + '</div>';
+
+                    // Eliminasi
+                    for (let k = 0; k < n; k++) {
+                        if (k !== i) {
+                            let factor = M[k][i];
+                            for (let j = i; j < n + 1; j++) {
+                                M[k][j] -= factor * M[i][j];
+                            }
+                            resultHTML += `<div class="matrix-step"><p>Langkah: Eliminasi R${k+1} = R${k+1} - ${factor.toFixed(0)} * R${i+1}</p>` + createMatrixTable(M) + '</div>';
+                        }
+                    }
+                }
+                
+                // Hasil Akhir
+                const x = M[0][n].toFixed(0);
+                const y = M[1][n].toFixed(0);
+                const z = M[2][n].toFixed(0);
+
+                resultHTML += "<h2><span style='color: green;'>SOLUSI AKHIR (RREF):</span></h2>" + createMatrixTable(M);
+                resultHTML += "<div class='final-solution'><h3>Solusi Ditemukan:</h3>";
+                resultHTML += `<p>x = ${x}</p><p>y = ${y}</p><p>z = ${z}</p></div>`;
+
+            } catch (e) {
+                resultHTML += `<p style='color:red;'>Terjadi kesalahan perhitungan: ${e.message}</p>`;
+            }
+
+            resultContainer.innerHTML = resultHTML;
+        }
+
+        // --- 2. Fungsi Aturan Cramer (Dengan Penjabaran Determinan) ---
+
+        // Fungsi Determinan 3x3
+        function det3x3(M) {
+            return M[0][0] * (M[1][1] * M[2][2] - M[1][2] * M[2][1]) -
+                   M[0][1] * (M[1][0] * M[2][2] - M[1][2] * M[2][0]) +
+                   M[0][2] * (M[1][0] * M[2][1] - M[1][1] * M[2][0]);
+        }
+
+        function solveCramer(A, B, n, resultContainer) {
+            let resultHTML = "<h2><span style='color:#007bff;'>Metode Aturan Cramer:</span> Penjabaran Determinan</h2>";
+
+            // Hitung Determinan D
+            const D = det3x3(A);
+            resultHTML += `<p class='cramer-det'>1. Determinan Matriks Koefisien (D): ${D.toFixed(0)}</p>`;
+
+            if (Math.abs(D) < 1e-9) {
+                resultHTML += "<p style='color:red;'>Determinan D mendekati nol. Aturan Cramer tidak dapat digunakan (solusi unik tidak ada).</p>";
+                resultContainer.innerHTML = resultHTML;
+                return;
+            }
+
+            const solutions = [];
+            const labels = ['x', 'y', 'z'];
+            
+            for (let i = 0; i < n; i++) {
+                // Buat matriks D_i
+                let A_i = JSON.parse(JSON.stringify(A));
+                for (let r = 0; r < n; r++) {
+                    A_i[r][i] = B[r]; // Ganti kolom ke-i dengan vektor B
+                }
+
+                // Hitung Determinan D_i
+                const D_i = det3x3(A_i);
+                solutions.push(D_i / D);
+
+                resultHTML += `<p class='cramer-det'>2. Determinan D_${i+1} (kolom ${i+1} diganti): ${D_i.toFixed(0)}</p>`;
+                resultHTML += `&nbsp;&nbsp;&nbsp;&nbsp; ${labels[i]} = D_${i+1} / D = ${D_i.toFixed(0)} / ${D.toFixed(0)} = ${solutions[i].toFixed(0)}</p>`;
+            }
+
+            // Hasil Akhir
+            resultHTML += "<div class='final-solution'><h3>Solusi Ditemukan:</h3>";
+            resultHTML += `<p>x = ${solutions[0].toFixed(0)}</p>`;
+            resultHTML += `<p>y = ${solutions[1].toFixed(0)}</p>`;
+            resultHTML += `<p>z = ${solutions[2].toFixed(0)}</p></div>`;
+
+            resultContainer.innerHTML = resultHTML;
+        }
+
+        // --- 3. Fungsi Kontrol Utama ---
+
+        function mainSolver() {
+            const { M, A, B } = getMatrixInput();
+            const n = 3;
+            const resultContainer = document.getElementById('results');
+            
+            // Dapatkan pilihan metode
+            const selectedMethod = document.querySelector('input[name="method"]:checked').value;
+
+            if (selectedMethod === 'gauss') {
+                solveGaussJordan(M, n, resultContainer);
+            } else if (selectedMethod === 'cramer') {
+                solveCramer(A, B, n, resultContainer);
+            }
+        }
+    </script>
+
+</body>
+</html>
